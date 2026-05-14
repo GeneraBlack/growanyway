@@ -96,7 +96,7 @@ The project includes a GitHub Actions workflow that runs `./gradlew build` on pu
 License
 =======
 
-The current project metadata declares `All Rights Reserved`.
+This project is licensed under the MIT License. See [LICENSE](LICENSE).
 
 References
 ==========
