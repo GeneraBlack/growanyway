@@ -1,0 +1,178 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Git tag to publish, for example v0.1.0
+        required: false
+        type: string
+      version_type:
+        description: Release channel
+        required: true
+        default: release
+        type: choice
+        options:
+          - release
+          - beta
+          - alpha
+      prerelease:
+        description: Mark the GitHub release as a prerelease
+        required: true
+        default: false
+        type: boolean
+      changelog_file:
+        description: Path to the release notes file
+        required: false
+        default: docs/release-notes.md
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref_name || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      CURSEFORGE_PROJECT_ID: ${{ vars.CURSEFORGE_PROJECT_ID || vars.CURSEFORGE_ID }}
+      CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN || secrets.CF_API_TOKEN }}
+      CHANGELOG_FILE: ${{ inputs.changelog_file || 'docs/release-notes.md' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Setup JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Read project properties
+        id: props
+        shell: bash
+        run: |
+          echo "mod_name=$(grep '^mod_name=' gradle.properties | cut -d= -f2-)" >> "$GITHUB_OUTPUT"
+          echo "mod_version=$(grep '^mod_version=' gradle.properties | cut -d= -f2-)" >> "$GITHUB_OUTPUT"
+          echo "minecraft_version=$(grep '^minecraft_version=' gradle.properties | cut -d= -f2-)" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve release metadata
+        id: meta
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mod_name='${{ steps.props.outputs.mod_name }}'
+          mod_version='${{ steps.props.outputs.mod_version }}'
+          minecraft_version='${{ steps.props.outputs.minecraft_version }}'
+
+          if [[ '${{ github.event_name }}' == 'workflow_dispatch' && -n '${{ inputs.tag }}' ]]; then
+            tag='${{ inputs.tag }}'
+          elif [[ '${{ github.ref_type }}' == 'tag' && -n '${{ github.ref_name }}' ]]; then
+            tag='${{ github.ref_name }}'
+          else
+            tag="v${mod_version}"
+          fi
+
+          version="${tag#v}"
+
+          if [[ '${{ github.event_name }}' == 'workflow_dispatch' ]]; then
+            version_type='${{ inputs.version_type }}'
+            prerelease='${{ inputs.prerelease }}'
+          else
+            version_type='release'
+            prerelease='false'
+
+            shopt -s nocasematch
+            if [[ "$version" == *alpha* ]]; then
+              version_type='alpha'
+              prerelease='true'
+            elif [[ "$version" == *beta* ]]; then
+              version_type='beta'
+              prerelease='true'
+            fi
+            shopt -u nocasematch
+          fi
+
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "version_type=$version_type" >> "$GITHUB_OUTPUT"
+          echo "prerelease=$prerelease" >> "$GITHUB_OUTPUT"
+          echo "name=${mod_name} ${version} for Minecraft ${minecraft_version}" >> "$GITHUB_OUTPUT"
+
+      - name: Validate release configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          missing=0
+
+          if [[ -z "$CURSEFORGE_PROJECT_ID" ]]; then
+            echo '::error title=Missing CurseForge project id::Set CURSEFORGE_PROJECT_ID or CURSEFORGE_ID in repository variables.'
+            missing=1
+          fi
+
+          if [[ -z "$CURSEFORGE_TOKEN" ]]; then
+            echo '::error title=Missing CurseForge token::Set CURSEFORGE_TOKEN or CF_API_TOKEN in repository secrets.'
+            missing=1
+          fi
+
+          if [[ ! -f "$CHANGELOG_FILE" ]]; then
+            echo "::error title=Missing changelog file::Could not find $CHANGELOG_FILE."
+            missing=1
+          fi
+
+          exit "$missing"
+
+      - name: Build release artifact
+        run: ./gradlew build
+
+      - name: Publish GitHub release and CurseForge file
+        id: publish
+        uses: Kir-Antipov/mc-publish@v3.3
+        with:
+          curseforge-id: ${{ env.CURSEFORGE_PROJECT_ID }}
+          curseforge-token: ${{ env.CURSEFORGE_TOKEN }}
+          github-tag: ${{ steps.meta.outputs.tag }}
+          github-generate-changelog: false
+          github-draft: false
+          github-prerelease: ${{ steps.meta.outputs.prerelease }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          files: build/libs/!(*-@(sources|javadoc)).jar
+          name: ${{ steps.meta.outputs.name }}
+          version: ${{ steps.meta.outputs.version }}
+          version-type: ${{ steps.meta.outputs.version_type }}
+          changelog-file: ${{ env.CHANGELOG_FILE }}
+          loaders: |
+            neoforge
+          game-versions: |
+            ${{ steps.props.outputs.minecraft_version }}
+          java: |
+            21
+          retry-attempts: 2
+          retry-delay: 10000
+          fail-mode: fail
+
+      - name: Write workflow summary
+        shell: bash
+        run: |
+          {
+            echo '## Release completed'
+            echo ''
+            echo "- Tag: ${{ steps.meta.outputs.tag }}"
+            echo "- Version: ${{ steps.meta.outputs.version }}"
+            echo "- Channel: ${{ steps.meta.outputs.version_type }}"
+            echo "- GitHub release: ${{ steps.publish.outputs.github-url }}"
+            echo "- CurseForge file: ${{ steps.publish.outputs.curseforge-url }}"
+          } >> "$GITHUB_STEP_SUMMARY"
