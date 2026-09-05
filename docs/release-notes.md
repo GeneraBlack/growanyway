@@ -1,38 +1,36 @@
-Grow Anyway 0.1.0
-==================
+# Grow Anyway 0.2.0
 
-Initial public release for Minecraft 1.21.1 on NeoForge 21.1.218.
+Comprehensive bugfix and stability release for Minecraft 1.21.1 on NeoForge 21.1.218.
 
-Highlights
-==========
+This release fixes critical duplication exploits, resolves client/server sync issues, guarantees safe tree growth around modded infrastructure without destruction, and delivers reliable drop multipliers for all trees and mature crops.
 
-- Aggressive bonemeal support for many vanilla and modded plants.
-- Faster passive growth for many plant blocks that participate in crop growth events.
-- Increased drops from plants, leaves, and logs.
-- Tree, mushroom, and azalea growth that can ignore nearby non-vanilla infrastructure blocks during feature placement checks.
-- Dedicated-server-friendly deployment. Players can join without installing the mod on their clients.
+## Highlights & Bug Fixes
 
-Compatibility Notes
-===================
+### 1. Robust Tree Detection & Drop Multipliers
+- **BFS Tree Structure Traversal**: Implemented a breadth-first search (`isTreeLog`) that follows connected tree trunks, branches, and canopy foliage up to 32 blocks.
+- **Order-Independent Felling**: Trees drop multiplied logs consistently whether chopped from bottom-to-top, top-to-bottom, or from the middle.
+- **Exploit & Duplication Prevention**: Player-placed logs (building walls, pillars, bases) do not have natural leaf canopies (`!persistent`) and drop exactly 1 log. Placed saplings and persistent leaves also never receive bonus drops.
+- **Clean ItemEntity Spawning**: Extra drops are spawned as clean, separate `ItemEntity` instances, eliminating `SynchedEntityData` client-desync issues where multiplied items previously failed to register on clients.
 
-- Sugar cane and cactus can be bonemealed through their full column logic.
-- Bamboo stays on its native bonemeal path instead of being forced into an invalid growth state.
-- Nearby modded pipes, cables, and machine blocks are not removed. They are only masked during feature placement checks.
+### 2. Mature Crop & Column Crop Validation
+- **Crops**: Wheat, carrots, potatoes, beetroots, nether wart, cocoa, and sweet berries now only receive drop bonuses when fully mature (`isMaxAge()`).
+- **Column Crops**: Sugar cane, cactus, and bamboo only multiply grown segments above the planted base block, preventing placement/harvest duplication loops.
 
-Configuration
-=============
+### 3. Modded Infrastructure Protection During Tree Growth
+- **Zero Destruction of Mod Blocks**: Modded cables, pipes, and machinery (`namespace != "minecraft"`) are dynamically masked via `FeatureBypassWorldGenLevel` so tree features can grow freely around them. Any `setBlock` or `destroyBlock` attempts by the tree generator onto masked mod blocks are safely intercepted, preventing block loss.
+- **Extended Canopy Clearing Range**: Increased default `featureClearRadius` to 6 and `featureClearHeight` to 24 (configurable up to 16 and 64 respectively) to accommodate wide-canopy trees (e.g. Large Oak, Dark Oak, Jungle).
 
-The generated `growanyway-server.toml` file lets server owners tune:
+### 4. 2x2 Sapling Preservation & Non-Plant Safety
+- **Mega Tree Verification**: When bonemealing a sapling within a 2x2 arrangement, 1x1 trees now only consume the clicked sapling, preserving the remaining 3 adjacent saplings.
+- **Non-Plant Exclusion**: Filtered out `FireBlock`, `FrostedIceBlock`, and `ChorusFlowerBlock` from artificial stage increments.
+- **Gradual Growth Passes**: Plants advance incrementally per configured pass rather than instantly maxing out in a single tick.
 
-- bonemeal forcing,
-- bonemeal pass count,
-- natural growth acceleration,
-- bonus drop multiplier,
-- feature-space compatibility radius and height.
+### 5. Dedicated-Server & Client Sync
+- **Server-Only Deployment**: Fully compatible with vanilla clients; no client installation required on dedicated servers.
+- **Client Prediction**: Added `GrowthLogic.canGrow` to allow proper hand-swing animation when using bonemeal.
+- **Duplicate FX Cleanup**: Removed redundant manual `levelEvent(1505)` invocation to eliminate double particles and sounds.
 
-Build Target
-============
-
-- Minecraft 1.21.1
-- NeoForge 21.1.218
-- Java 21
+## Build Target
+- Minecraft: 1.21.1
+- NeoForge: 21.1.218
+- Java: 21

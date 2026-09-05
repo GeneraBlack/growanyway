@@ -52,11 +52,11 @@ public final class GrowAnywayConfig {
                     .comment("Maskiert modded Nachbarbloecke bei Baum-, Pilz- und Azalea-Features fuer die Platzpruefung, ohne die echten Bloecke zu entfernen.")
                     .define("relaxFeatureSpaceChecks", true);
             featureClearRadius = builder
-                    .comment("Horizontaler Radius um den Feature-Ursprung, in dem modded Nachbarbloecke fuer die Platzpruefung ignoriert werden duerfen.")
-                    .defineInRange("featureClearRadius", 2, 0, 8);
+                    .comment("Horizontaler Radius um den Feature-Ursprung, in dem modded Nachbarbloecke fuer die Platzpruefung ignoriert werden (weder blockieren sie das Wachstum, noch werden sie zerstoert).")
+                    .defineInRange("featureClearRadius", 6, 0, 16);
             featureClearHeight = builder
-                    .comment("Hoehe ueber dem Ausgangsblock, in der modded Nachbarbloecke fuer die Platzpruefung ignoriert werden duerfen.")
-                    .defineInRange("featureClearHeight", 16, 1, 48);
+                    .comment("Hoehe ueber dem Ausgangsblock, in der modded Nachbarbloecke fuer die Platzpruefung ignoriert werden (weder blockieren sie das Wachstum, noch werden sie zerstoert).")
+                    .defineInRange("featureClearHeight", 24, 1, 64);
             builder.pop();
         }
     }
