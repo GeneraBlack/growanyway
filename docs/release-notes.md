@@ -1,36 +1,25 @@
-# Grow Anyway 0.2.0
+# Grow Anyway 0.3.0
 
-Comprehensive bugfix and stability release for Minecraft 1.21.1 on NeoForge 21.1.218.
+Official port to **Minecraft 26.2** running on **NeoForge 26.2** with **Java 26**.
 
-This release fixes critical duplication exploits, resolves client/server sync issues, guarantees safe tree growth around modded infrastructure without destruction, and delivers reliable drop multipliers for all trees and mature crops.
+This release brings the full Grow Anyway feature set to the Minecraft 26.2 era, adapting to Mojang's new un-obfuscated codebase, modern NeoForge toolchain, and updated internal APIs while maintaining full server-only deployment capability and rock-solid gameplay stability.
 
-## Highlights & Bug Fixes
+## What's New in 0.3.0
 
-### 1. Robust Tree Detection & Drop Multipliers
-- **BFS Tree Structure Traversal**: Implemented a breadth-first search (`isTreeLog`) that follows connected tree trunks, branches, and canopy foliage up to 32 blocks.
-- **Order-Independent Felling**: Trees drop multiplied logs consistently whether chopped from bottom-to-top, top-to-bottom, or from the middle.
-- **Exploit & Duplication Prevention**: Player-placed logs (building walls, pillars, bases) do not have natural leaf canopies (`!persistent`) and drop exactly 1 log. Placed saplings and persistent leaves also never receive bonus drops.
-- **Clean ItemEntity Spawning**: Extra drops are spawned as clean, separate `ItemEntity` instances, eliminating `SynchedEntityData` client-desync issues where multiplied items previously failed to register on clients.
+### 1. Full Minecraft 26.2 & NeoForge 26.2 Compatibility
+- **Modern Build System**: Migrated to `net.neoforged.moddev:2.0.146` with NeoForge `26.2.0.79` and Java 26 toolchain (`JavaLanguageVersion.of(26)`).
+- **Identifier Migration**: Adapted codebase to Mojang's new `net.minecraft.resources.Identifier` and `ResourceKey.identifier()` APIs.
+- **BlockItemTags Integration**: Updated plant and sapling tag references to the unified `BlockItemTags` registry.
+- **Level & Redstone API Alignment**: Adapted `Level.neighborChanged` calls to the new `@Nullable Orientation` parameter and aligned `level.getRandom()` access.
 
-### 2. Mature Crop & Column Crop Validation
-- **Crops**: Wheat, carrots, potatoes, beetroots, nether wart, cocoa, and sweet berries now only receive drop bonuses when fully mature (`isMaxAge()`).
-- **Column Crops**: Sugar cane, cactus, and bamboo only multiply grown segments above the planted base block, preventing placement/harvest duplication loops.
+### 2. Retained Core Features from v0.2.0
+- **BFS Tree Detection & Drop Multipliers**: Connected canopy tree traversal guarantees 2x (configurable) log drops when felling trees from any direction, while player-placed logs without leaves drop normally.
+- **Modded Infrastructure Protection**: `FeatureBypassWorldGenLevel` dynamic proxy protects modded machines, pipes, and cables during tree growth without obstructing natural canopies.
+- **Mature Crop Safeguards**: Crops (wheat, carrots, potatoes, beetroots, nether wart, cocoa, sweet berries) and column crops (cane, cactus, bamboo) only multiply drops when fully grown.
+- **Separate ItemEntity Spawning**: Drop bonuses are spawned as distinct item entities to prevent client-side synchronization issues.
+- **Server-Only Deployment**: Fully server-side compatible; vanilla and modded clients can connect without needing the mod locally installed.
 
-### 3. Modded Infrastructure Protection During Tree Growth
-- **Zero Destruction of Mod Blocks**: Modded cables, pipes, and machinery (`namespace != "minecraft"`) are dynamically masked via `FeatureBypassWorldGenLevel` so tree features can grow freely around them. Any `setBlock` or `destroyBlock` attempts by the tree generator onto masked mod blocks are safely intercepted, preventing block loss.
-- **Extended Canopy Clearing Range**: Increased default `featureClearRadius` to 6 and `featureClearHeight` to 24 (configurable up to 16 and 64 respectively) to accommodate wide-canopy trees (e.g. Large Oak, Dark Oak, Jungle).
-
-### 4. 2x2 Sapling Preservation & Non-Plant Safety
-- **Mega Tree Verification**: When bonemealing a sapling within a 2x2 arrangement, 1x1 trees now only consume the clicked sapling, preserving the remaining 3 adjacent saplings.
-- **Non-Plant Exclusion**: Filtered out `FireBlock`, `FrostedIceBlock`, and `ChorusFlowerBlock` from artificial stage increments.
-- **Gradual Growth Passes**: Plants advance incrementally per configured pass rather than instantly maxing out in a single tick.
-
-### 5. Dedicated-Server & Client Sync
-- **Server-Only Deployment**: Fully compatible with vanilla clients; no client installation required on dedicated servers.
-- **Client Prediction**: Added `GrowthLogic.canGrow` to allow proper hand-swing animation when using bonemeal.
-- **Duplicate FX Cleanup**: Removed redundant manual `levelEvent(1505)` invocation to eliminate double particles and sounds.
-
-## Build Target
-- Minecraft: 1.21.1
-- NeoForge: 21.1.218
-- Java: 21
+## Build & Platform Target
+- **Minecraft**: 26.2
+- **Mod Loader**: NeoForge 26.2.0.79+
+- **Java**: 26 (supports Java 25+)
