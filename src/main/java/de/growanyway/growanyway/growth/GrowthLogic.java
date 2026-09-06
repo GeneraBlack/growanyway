@@ -5,8 +5,9 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.tags.BlockItemTags;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.BlockGetter;
@@ -94,7 +95,7 @@ public final class GrowthLogic {
             }
 
             if (!attemptChanged && currentState.isRandomlyTicking() && isPlantLikeBlock(currentState)) {
-                currentState.randomTick(level, pos, level.random);
+                currentState.randomTick(level, pos, level.getRandom());
                 attemptChanged = !level.getBlockState(pos).equals(currentState);
             }
 
@@ -147,7 +148,7 @@ public final class GrowthLogic {
                 || block instanceof BambooStalkBlock
                 || block instanceof BambooSaplingBlock
                 || block instanceof VineBlock
-                || state.is(BlockTags.SAPLINGS)
+                || state.is(BlockItemTags.SAPLINGS.block())
                 || state.is(BlockTags.LEAVES);
     }
 
@@ -165,7 +166,7 @@ public final class GrowthLogic {
         Block block = state.getBlock();
 
         // Placed saplings must never be duplicated
-        if (state.is(BlockTags.SAPLINGS)) {
+        if (state.is(BlockItemTags.SAPLINGS.block())) {
             return false;
         }
 
@@ -295,7 +296,7 @@ public final class GrowthLogic {
     private static boolean applyBonemealable(ServerLevel level, BlockPos pos, BlockState state, BonemealableBlock bonemealableBlock) {
         BlockState before = state;
         if (bonemealableBlock.isValidBonemealTarget(level, pos, state)) {
-            bonemealableBlock.performBonemeal(level, level.random, pos, state);
+            bonemealableBlock.performBonemeal(level, level.getRandom(), pos, state);
             return !level.getBlockState(pos).equals(before);
         }
 
@@ -372,7 +373,7 @@ public final class GrowthLogic {
         BlockState resetState = topState.setValue(CactusBlock.AGE, Integer.valueOf(0));
         level.setBlockAndUpdate(growPos, block.defaultBlockState());
         level.setBlock(topPos, resetState, 4);
-        level.neighborChanged(resetState, growPos, block, topPos, false);
+        level.neighborChanged(resetState, growPos, block, null, false);
         CommonHooks.fireCropGrowPost(level, topPos, topState);
         return true;
     }
@@ -499,11 +500,11 @@ public final class GrowthLogic {
         if (state.isAir() || !state.getFluidState().isEmpty()) {
             return false;
         }
-        if (state.is(BlockTags.LOGS) || state.is(BlockTags.LEAVES) || state.is(BlockTags.SAPLINGS) || state.is(BlockTags.DIRT)) {
+        if (state.is(BlockTags.LOGS) || state.is(BlockTags.LEAVES) || state.is(BlockItemTags.SAPLINGS.block()) || state.is(BlockTags.DIRT)) {
             return false;
         }
 
-        ResourceLocation blockId = BuiltInRegistries.BLOCK.getKey(state.getBlock());
+        Identifier blockId = BuiltInRegistries.BLOCK.getKey(state.getBlock());
         return blockId != null && !"minecraft".equals(blockId.getNamespace());
     }
 

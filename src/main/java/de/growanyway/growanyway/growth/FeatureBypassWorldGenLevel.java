@@ -62,7 +62,7 @@ final class FeatureBypassWorldGenLevel implements InvocationHandler {
         return switch (methodName) {
             case "equals" -> proxy == args[0];
             case "hashCode" -> System.identityHashCode(proxy);
-            case "toString" -> "FeatureBypassWorldGenLevel[delegate=" + delegate.dimension().location() + "]";
+            case "toString" -> "FeatureBypassWorldGenLevel[delegate=" + delegate.dimension().identifier() + "]";
             default -> throw new IllegalStateException("Unsupported Object method: " + methodName);
         };
     }
