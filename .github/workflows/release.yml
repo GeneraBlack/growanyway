@@ -167,9 +167,6 @@ jobs:
             neoforge
           game-versions: |
             ${{ steps.props.outputs.minecraft_version }}
-          java: |
-            Java 26
-            Java 25
           retry-attempts: 2
           retry-delay: 10000
           fail-mode: fail
