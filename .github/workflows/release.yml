@@ -51,11 +51,17 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
 
-      - name: Setup JDK 26
+      - name: Setup JDK 26 (Toolchain)
         uses: actions/setup-java@v4
         with:
           java-version: '26'
           distribution: 'oracle'
+
+      - name: Setup JDK 21 (Gradle Daemon)
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
